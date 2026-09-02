@@ -48,22 +48,56 @@ to anon, authenticated
 with check (true);
 
 drop policy if exists "Signed-in users can read leads" on public.leads;
-create policy "Signed-in users can read leads"
-on public.leads
-for select
-to authenticated
-using (true);
-
 drop policy if exists "Signed-in users can update leads" on public.leads;
-create policy "Signed-in users can update leads"
-on public.leads
-for update
-to authenticated
-using (true)
-with check (true);
+
+create or replace function public.admin_list_leads(p_password text)
+returns setof public.leads
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_password is distinct from '0505' then
+    raise exception 'Unauthorized';
+  end if;
+  return query select * from public.leads order by created_at desc;
+end;
+$$;
+
+create or replace function public.admin_update_lead(
+  p_password text,
+  p_id uuid,
+  p_status text default null,
+  p_notes text default null
+)
+returns public.leads
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  row public.leads;
+begin
+  if p_password is distinct from '0505' then
+    raise exception 'Unauthorized';
+  end if;
+  update public.leads
+  set
+    status = coalesce(nullif(p_status, ''), status),
+    notes = case when p_notes is null then notes else p_notes end
+  where id = p_id
+  returning * into row;
+  if row.id is null then
+    raise exception 'Lead not found';
+  end if;
+  return row;
+end;
+$$;
+
+grant execute on function public.admin_list_leads(text) to anon, authenticated;
+grant execute on function public.admin_update_lead(text, uuid, text, text) to anon, authenticated;
 
 alter table public.leads replica identity full;
-
 alter table public.leads add column if not exists service text;
 
 do $$

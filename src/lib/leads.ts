@@ -30,31 +30,37 @@ export async function createLead(input: LeadInput) {
   if (error) throw new Error(error.message);
 }
 
-export async function listLeads() {
+export async function listLeads(password: string) {
   const supabase = getSupabase();
   if (!supabase) throw new Error("Supabase is not configured.");
 
-  const { data, error } = await supabase
-    .from("leads")
-    .select("*")
-    .order("created_at", { ascending: false });
-
+  const { data, error } = await supabase.rpc("admin_list_leads", { p_password: password });
   if (error) throw new Error(error.message);
   return (data ?? []) as Lead[];
 }
 
-export async function updateLeadStatus(id: string, status: LeadStatus) {
+export async function updateLeadStatus(password: string, id: string, status: LeadStatus) {
   const supabase = getSupabase();
   if (!supabase) throw new Error("Supabase is not configured.");
 
-  const { error } = await supabase.from("leads").update({ status }).eq("id", id);
+  const { error } = await supabase.rpc("admin_update_lead", {
+    p_password: password,
+    p_id: id,
+    p_status: status,
+    p_notes: null,
+  });
   if (error) throw new Error(error.message);
 }
 
-export async function updateLeadNotes(id: string, notes: string) {
+export async function updateLeadNotes(password: string, id: string, notes: string) {
   const supabase = getSupabase();
   if (!supabase) throw new Error("Supabase is not configured.");
 
-  const { error } = await supabase.from("leads").update({ notes }).eq("id", id);
+  const { error } = await supabase.rpc("admin_update_lead", {
+    p_password: password,
+    p_id: id,
+    p_status: null,
+    p_notes: notes,
+  });
   if (error) throw new Error(error.message);
 }
