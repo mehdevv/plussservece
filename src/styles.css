@@ -1385,6 +1385,19 @@ strong {
   margin-bottom: 16px;
 }
 
+.admin-empty {
+  padding: 24px 0;
+}
+
+.admin-empty pre {
+  margin: 12px 0;
+  padding: 12px;
+  background: var(--gray, #f3f4f6);
+  font-size: 0.8rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
 .lead-list {
   display: grid;
   gap: 0;

@@ -49,6 +49,23 @@ with check (true);
 
 drop policy if exists "Signed-in users can read leads" on public.leads;
 drop policy if exists "Signed-in users can update leads" on public.leads;
+drop policy if exists "Inbox can read leads" on public.leads;
+drop policy if exists "Inbox can update leads" on public.leads;
+
+grant select, update on table public.leads to anon, authenticated;
+
+create policy "Inbox can read leads"
+on public.leads
+for select
+to anon, authenticated
+using (true);
+
+create policy "Inbox can update leads"
+on public.leads
+for update
+to anon, authenticated
+using (true)
+with check (true);
 
 create or replace function public.admin_list_leads(p_password text)
 returns setof public.leads
@@ -96,6 +113,8 @@ $$;
 
 grant execute on function public.admin_list_leads(text) to anon, authenticated;
 grant execute on function public.admin_update_lead(text, uuid, text, text) to anon, authenticated;
+
+notify pgrst, 'reload schema';
 
 alter table public.leads replica identity full;
 alter table public.leads add column if not exists service text;

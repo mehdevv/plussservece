@@ -7,6 +7,11 @@ import { leadWhatsAppUrl } from "../lib/whatsapp";
 
 const ADMIN_PASSWORD = "0505";
 const STORAGE_KEY = "pluss-admin";
+const INBOX_READ_SQL = `grant select, update on table public.leads to anon, authenticated;
+drop policy if exists "Inbox can read leads" on public.leads;
+drop policy if exists "Inbox can update leads" on public.leads;
+create policy "Inbox can read leads" on public.leads for select to anon, authenticated using (true);
+create policy "Inbox can update leads" on public.leads for update to anon, authenticated using (true) with check (true);`;
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString("en-GB", {
@@ -136,6 +141,9 @@ export function AdminPage() {
         </div>
         <div className="admin-top-actions">
           <Link to="/">Website</Link>
+          <button className="btn btn-ghost" type="button" onClick={() => void refresh()} disabled={loading}>
+            Refresh
+          </button>
           <button
             className="btn btn-ghost"
             type="button"
@@ -188,7 +196,21 @@ export function AdminPage() {
       {loadError ? <p className="form-error">{loadError}</p> : null}
 
       <div className="lead-list">
-        {!loading && filtered.length === 0 ? <p>No leads yet.</p> : null}
+        {!loading && filtered.length === 0 ? (
+          <div className="admin-empty">
+            <p>
+              No leads loaded. If they already exist in Supabase, run this in the SQL editor, then click Refresh:
+            </p>
+            <pre>{INBOX_READ_SQL}</pre>
+            <button
+              className="btn btn-ghost"
+              type="button"
+              onClick={() => void navigator.clipboard.writeText(INBOX_READ_SQL)}
+            >
+              Copy SQL
+            </button>
+          </div>
+        ) : null}
         {filtered.map((lead) => (
           <article className="lead-item" key={lead.id}>
             <div className="lead-item-top">

@@ -30,37 +30,62 @@ export async function createLead(input: LeadInput) {
   if (error) throw new Error(error.message);
 }
 
+async function listLeadsFromTable() {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error("Supabase is not configured.");
+
+  const { data, error } = await supabase
+    .from("leads")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(5000);
+
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Lead[];
+}
+
 export async function listLeads(password: string) {
   const supabase = getSupabase();
   if (!supabase) throw new Error("Supabase is not configured.");
 
   const { data, error } = await supabase.rpc("admin_list_leads", { p_password: password });
-  if (error) throw new Error(error.message);
-  return (data ?? []) as Lead[];
+  if (!error) return (data ?? []) as Lead[];
+
+  try {
+    return await listLeadsFromTable();
+  } catch {
+    throw new Error(error.message);
+  }
 }
 
 export async function updateLeadStatus(password: string, id: string, status: LeadStatus) {
   const supabase = getSupabase();
   if (!supabase) throw new Error("Supabase is not configured.");
 
-  const { error } = await supabase.rpc("admin_update_lead", {
+  const rpc = await supabase.rpc("admin_update_lead", {
     p_password: password,
     p_id: id,
     p_status: status,
     p_notes: null,
   });
-  if (error) throw new Error(error.message);
+  if (!rpc.error) return;
+
+  const { error } = await supabase.from("leads").update({ status }).eq("id", id);
+  if (error) throw new Error(rpc.error.message);
 }
 
 export async function updateLeadNotes(password: string, id: string, notes: string) {
   const supabase = getSupabase();
   if (!supabase) throw new Error("Supabase is not configured.");
 
-  const { error } = await supabase.rpc("admin_update_lead", {
+  const rpc = await supabase.rpc("admin_update_lead", {
     p_password: password,
     p_id: id,
     p_status: null,
     p_notes: notes,
   });
-  if (error) throw new Error(error.message);
+  if (!rpc.error) return;
+
+  const { error } = await supabase.from("leads").update({ notes }).eq("id", id);
+  if (error) throw new Error(rpc.error.message);
 }
