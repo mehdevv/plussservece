@@ -7,6 +7,7 @@ import { ServiceVisual } from "../components/ServiceVisual";
 import { useLang } from "../i18n/LanguageContext";
 import { SERVICES, type ServiceId } from "../i18n/copy";
 import { LINKEDIN_URL, PORTFOLIO_URL } from "../lib/types";
+import { trackBooking } from "../lib/pixel";
 import { directWhatsAppUrl } from "../lib/whatsapp";
 
 const stepIcons = ["phone", "build", "launch"] as const;
@@ -65,7 +66,7 @@ export function HomePage() {
                         <strong>{item.price}</strong>
                         <span>{item.timing}</span>
                       </div>
-                      <Link className="btn btn-plan" to={`/?service=${service.id}#signup`}>
+                      <Link className="btn btn-plan" to={`/?service=${service.id}#signup`} onClick={trackBooking}>
                         {t.offers.choose}
                       </Link>
                     </div>
@@ -177,7 +178,7 @@ export function HomePage() {
               <h2>{t.start.title}</h2>
             </header>
             <div className="hero-actions">
-              <a className="btn btn-primary" href="#signup">
+              <a className="btn btn-primary" href="#signup" onClick={trackBooking}>
                 {t.start.book}
               </a>
               <a className="btn btn-ghost" href={directWhatsAppUrl(t.waIntro)} target="_blank" rel="noopener">
@@ -191,7 +192,7 @@ export function HomePage() {
       {showSticky ? (
         <div className="sticky-bar">
           <span>{t.sticky.label}</span>
-          <a className="btn btn-primary" href="#signup">
+          <a className="btn btn-primary" href="#signup" onClick={trackBooking}>
             {t.sticky.book}
           </a>
         </div>

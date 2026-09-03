@@ -6,6 +6,7 @@ import { createLead, isEmail, isPhone } from "../lib/leads";
 import type { LeadInput } from "../lib/types";
 import { buildLeadWhatsAppMessage, whatsappUrl } from "../lib/whatsapp";
 import { getSupabase } from "../lib/supabase";
+import { trackBooking } from "../lib/pixel";
 
 const empty: LeadInput = {
   full_name: "",
@@ -65,6 +66,7 @@ export function LeadForm() {
 
     try {
       await createLead(values);
+      trackBooking();
       setSuccess(true);
       window.open(waLink, "_blank", "noopener");
     } catch (error) {

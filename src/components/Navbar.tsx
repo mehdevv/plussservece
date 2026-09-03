@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { SITE_URL } from "../lib/types";
+import { trackBooking } from "../lib/pixel";
 import { useLang } from "../i18n/LanguageContext";
 
 export function Navbar() {
@@ -36,7 +37,7 @@ export function Navbar() {
             ع
           </button>
         </div>
-        <a className="btn btn-primary nav-cta" href="#signup">
+        <a className="btn btn-primary nav-cta" href="#signup" onClick={trackBooking}>
           {t.nav.book}
         </a>
         <button
@@ -56,7 +57,14 @@ export function Navbar() {
             {link.label}
           </a>
         ))}
-        <a className="btn btn-primary" href="#signup" onClick={() => setOpen(false)}>
+        <a
+          className="btn btn-primary"
+          href="#signup"
+          onClick={() => {
+            trackBooking();
+            setOpen(false);
+          }}
+        >
           {t.nav.book}
         </a>
       </div>
