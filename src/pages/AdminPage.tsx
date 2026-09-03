@@ -13,6 +13,24 @@ drop policy if exists "Inbox can update leads" on public.leads;
 create policy "Inbox can read leads" on public.leads for select to anon, authenticated using (true);
 create policy "Inbox can update leads" on public.leads for update to anon, authenticated using (true) with check (true);`;
 
+const STATUS_FILTERS = ["all", ...LEAD_STATUSES] as const;
+type StatusFilter = (typeof STATUS_FILTERS)[number];
+
+const STATUS_LABEL: Record<StatusFilter, string> = {
+  all: "All",
+  new: "New",
+  contacted: "Contacted",
+  booked: "Booked",
+  won: "Won",
+  lost: "Lost",
+};
+
+function serviceLabel(value: string | null) {
+  if (!value) return "—";
+  if (value === "mix") return "Mix";
+  return value.toUpperCase();
+}
+
 function formatDate(value: string) {
   return new Date(value).toLocaleString("en-GB", {
     day: "2-digit",
@@ -87,7 +105,7 @@ export function AdminPage() {
   const [unlocked, setUnlocked] = useState(readUnlocked);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<LeadStatus | "all">("all");
+  const [status, setStatus] = useState<StatusFilter>("all");
   const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(false);
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
@@ -119,14 +137,27 @@ export function AdminPage() {
     });
   }, [leads, query, status]);
 
-  const counts = useMemo(
-    () => ({
-      total: leads.length,
-      new: leads.filter((lead) => lead.status === "new").length,
-      booked: leads.filter((lead) => lead.status === "booked").length,
-    }),
-    [leads]
-  );
+  const counts = useMemo(() => {
+    const next: Record<StatusFilter, number> = {
+      all: leads.length,
+      new: 0,
+      contacted: 0,
+      booked: 0,
+      won: 0,
+      lost: 0,
+    };
+    for (const lead of leads) next[lead.status] += 1;
+    return next;
+  }, [leads]);
+
+  async function changeStatus(id: string, next: LeadStatus) {
+    setLeads((current) => current.map((lead) => (lead.id === id ? { ...lead, status: next } : lead)));
+    try {
+      await updateLeadStatus(ADMIN_PASSWORD, id, next);
+    } catch {
+      void refresh();
+    }
+  }
 
   if (!unlocked) return <LoginCard onUnlock={() => setUnlocked(true)} />;
 
@@ -162,106 +193,120 @@ export function AdminPage() {
       </header>
 
       <section className="admin-stats">
-        <article>
-          <strong>{counts.total}</strong>
-          <span>Total leads</span>
-        </article>
-        <article>
-          <strong>{counts.new}</strong>
-          <span>New</span>
-        </article>
-        <article>
-          <strong>{counts.booked}</strong>
-          <span>Booked</span>
-        </article>
+        {STATUS_FILTERS.map((item) => (
+          <button
+            key={item}
+            type="button"
+            className={`admin-stat status-tone-${item}${status === item ? " is-active" : ""}`}
+            onClick={() => setStatus(item)}
+          >
+            <strong>{counts[item]}</strong>
+            <span>{STATUS_LABEL[item]}</span>
+          </button>
+        ))}
       </section>
 
       <section className="admin-filters">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search name, business, phone…"
+          placeholder="Search name, business, phone, email…"
         />
-        <select value={status} onChange={(e) => setStatus(e.target.value as LeadStatus | "all")}>
-          <option value="all">All statuses</option>
-          {LEAD_STATUSES.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
+        {loading ? <p className="admin-loading">Loading…</p> : <p className="admin-loading">{filtered.length} shown</p>}
       </section>
 
-      {loading ? <p>Loading…</p> : null}
       {loadError ? <p className="form-error">{loadError}</p> : null}
 
-      <div className="lead-list">
-        {!loading && filtered.length === 0 ? (
-          <div className="admin-empty">
-            <p>
-              No leads loaded. If they already exist in Supabase, run this in the SQL editor, then click Refresh:
-            </p>
-            <pre>{INBOX_READ_SQL}</pre>
-            <button
-              className="btn btn-ghost"
-              type="button"
-              onClick={() => void navigator.clipboard.writeText(INBOX_READ_SQL)}
-            >
-              Copy SQL
-            </button>
-          </div>
-        ) : null}
-        {filtered.map((lead) => (
-          <article className="lead-item" key={lead.id}>
-            <div className="lead-item-top">
-              <div>
-                <h2>
-                  {lead.full_name} · {lead.business_name}
-                </h2>
-                <p>
-                  {lead.service ? `${lead.service} · ` : ""}
-                  {lead.phone} · {lead.email}
-                  {lead.city ? ` · ${lead.city}` : ""}
-                  {lead.business_type ? ` · ${lead.business_type}` : ""}
-                </p>
-              </div>
-              <span className={`status-pill status-${lead.status}`}>{lead.status}</span>
-            </div>
-            {lead.message ? <p className="lead-message">{lead.message}</p> : null}
-            <div className="lead-item-actions">
-              <select
-                value={lead.status}
-                onChange={(e) =>
-                  void updateLeadStatus(ADMIN_PASSWORD, lead.id, e.target.value as LeadStatus).then(refresh)
-                }
-              >
-                {LEAD_STATUSES.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-              <a className="btn btn-whatsapp" href={leadWhatsAppUrl(lead.phone, lead.full_name)} target="_blank" rel="noopener">
-                WhatsApp
-              </a>
-              <span className="lead-date">{formatDate(lead.created_at)}</span>
-            </div>
-            <label className="notes-label">
-              Notes
-              <textarea
-                rows={2}
-                value={notesDraft[lead.id] ?? lead.notes ?? ""}
-                onChange={(e) => setNotesDraft((current) => ({ ...current, [lead.id]: e.target.value }))}
-                onBlur={() => {
-                  const next = notesDraft[lead.id];
-                  if (next === undefined || next === (lead.notes ?? "")) return;
-                  void updateLeadNotes(ADMIN_PASSWORD, lead.id, next);
-                }}
-              />
-            </label>
-          </article>
-        ))}
-      </div>
+      {!loading && filtered.length === 0 ? (
+        <div className="admin-empty">
+          <p>
+            No leads loaded. If they already exist in Supabase, run this in the SQL editor, then click Refresh:
+          </p>
+          <pre>{INBOX_READ_SQL}</pre>
+          <button
+            className="btn btn-ghost"
+            type="button"
+            onClick={() => void navigator.clipboard.writeText(INBOX_READ_SQL)}
+          >
+            Copy SQL
+          </button>
+        </div>
+      ) : (
+        <div className="inbox-wrap">
+          <table className="inbox-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Business</th>
+                <th>Service</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>City</th>
+                <th>Message</th>
+                <th>Status</th>
+                <th>Notes</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((lead) => (
+                <tr key={lead.id} className={`inbox-row status-tone-${lead.status}`}>
+                  <td className="is-date">{formatDate(lead.created_at)}</td>
+                  <td>
+                    <strong>{lead.full_name}</strong>
+                  </td>
+                  <td>
+                    {lead.business_name}
+                    {lead.business_type ? <small>{lead.business_type}</small> : null}
+                  </td>
+                  <td>{serviceLabel(lead.service)}</td>
+                  <td>
+                    <a href={`tel:${lead.phone}`}>{lead.phone}</a>
+                  </td>
+                  <td>
+                    <a href={`mailto:${lead.email}`}>{lead.email}</a>
+                  </td>
+                  <td>{lead.city || "—"}</td>
+                  <td className="is-message" title={lead.message ?? ""}>
+                    {lead.message || "—"}
+                  </td>
+                  <td>
+                    <select
+                      className={`status-select status-tone-${lead.status}`}
+                      value={lead.status}
+                      onChange={(e) => void changeStatus(lead.id, e.target.value as LeadStatus)}
+                    >
+                      {LEAD_STATUSES.map((item) => (
+                        <option key={item} value={item}>
+                          {STATUS_LABEL[item]}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="is-notes">
+                    <input
+                      value={notesDraft[lead.id] ?? lead.notes ?? ""}
+                      placeholder="Add note"
+                      onChange={(e) => setNotesDraft((current) => ({ ...current, [lead.id]: e.target.value }))}
+                      onBlur={() => {
+                        const next = notesDraft[lead.id];
+                        if (next === undefined || next === (lead.notes ?? "")) return;
+                        void updateLeadNotes(ADMIN_PASSWORD, lead.id, next);
+                      }}
+                    />
+                  </td>
+                  <td>
+                    <a className="btn btn-whatsapp" href={leadWhatsAppUrl(lead.phone, lead.full_name)} target="_blank" rel="noopener">
+                      WA
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </main>
   );
 }
