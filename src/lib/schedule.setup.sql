@@ -1,132 +1,3 @@
--- Pluss.dev lead capture
--- Run this in the Supabase SQL editor.
-
-create extension if not exists pgcrypto;
-
-create table if not exists public.leads (
-  id uuid primary key default gen_random_uuid(),
-  full_name text not null,
-  business_name text not null,
-  phone text not null,
-  email text not null,
-  city text,
-  business_type text,
-  service text,
-  message text,
-  status text not null default 'new' check (status in ('new', 'contacted', 'booked', 'won', 'lost')),
-  notes text,
-  source text not null default 'website',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create index if not exists leads_created_at_idx on public.leads (created_at desc);
-create index if not exists leads_status_idx on public.leads (status);
-
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
-
-drop trigger if exists leads_set_updated_at on public.leads;
-create trigger leads_set_updated_at
-before update on public.leads
-for each row execute procedure public.set_updated_at();
-
-alter table public.leads enable row level security;
-
-drop policy if exists "Anyone can submit a lead" on public.leads;
-create policy "Anyone can submit a lead"
-on public.leads
-for insert
-to anon, authenticated
-with check (true);
-
-drop policy if exists "Signed-in users can read leads" on public.leads;
-drop policy if exists "Signed-in users can update leads" on public.leads;
-drop policy if exists "Inbox can read leads" on public.leads;
-drop policy if exists "Inbox can update leads" on public.leads;
-
-grant select, update on table public.leads to anon, authenticated;
-
-create policy "Inbox can read leads"
-on public.leads
-for select
-to anon, authenticated
-using (true);
-
-create policy "Inbox can update leads"
-on public.leads
-for update
-to anon, authenticated
-using (true)
-with check (true);
-
-create or replace function public.admin_list_leads(p_password text)
-returns setof public.leads
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if p_password is distinct from '0505' then
-    raise exception 'Unauthorized';
-  end if;
-  return query select * from public.leads order by created_at desc;
-end;
-$$;
-
-create or replace function public.admin_update_lead(
-  p_password text,
-  p_id uuid,
-  p_status text default null,
-  p_notes text default null
-)
-returns public.leads
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  row public.leads;
-begin
-  if p_password is distinct from '0505' then
-    raise exception 'Unauthorized';
-  end if;
-  update public.leads
-  set
-    status = coalesce(nullif(p_status, ''), status),
-    notes = case when p_notes is null then notes else p_notes end
-  where id = p_id
-  returning * into row;
-  if row.id is null then
-    raise exception 'Lead not found';
-  end if;
-  return row;
-end;
-$$;
-
-grant execute on function public.admin_list_leads(text) to anon, authenticated;
-grant execute on function public.admin_update_lead(text, uuid, text, text) to anon, authenticated;
-
-notify pgrst, 'reload schema';
-
-alter table public.leads replica identity full;
-alter table public.leads add column if not exists service text;
-
-do $$
-begin
-  alter publication supabase_realtime add table public.leads;
-exception
-  when duplicate_object then null;
-end $$;
-
--- Weekly availability, BDR accounts, meetings. See also supabase/schedule.sql.
 -- Pluss.dev dashboard: weekly availability, BDR assignment, meetings.
 -- Run this in the Supabase SQL editor.
 -- Passwords: Owner 0505 | BDR 1 1515 | BDR 2 2525
@@ -356,6 +227,50 @@ begin
 end;
 $$;
 
+create or replace function public.dashboard_set_availability_slots(
+  p_password text,
+  p_weekdays int[],
+  p_starts int[],
+  p_ends int[]
+)
+returns setof public.availability_windows
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if public.dashboard_role(p_password) is distinct from 'admin' then
+    raise exception 'Only the owner can edit availability';
+  end if;
+  if coalesce(cardinality(p_weekdays), 0) <> coalesce(cardinality(p_starts), 0)
+     or coalesce(cardinality(p_weekdays), 0) <> coalesce(cardinality(p_ends), 0) then
+    raise exception 'Availability slots are mismatched';
+  end if;
+  if exists (
+    select 1
+    from generate_subscripts(coalesce(p_weekdays, '{}'::int[]), 1) as i
+    where p_weekdays[i] not between 1 and 7
+       or p_starts[i] < 0
+       or p_ends[i] > 1440
+       or p_ends[i] <= p_starts[i]
+  ) then
+    raise exception 'Invalid availability window';
+  end if;
+
+  delete from public.availability_windows where id is not null;
+
+  if p_weekdays is not null and cardinality(p_weekdays) > 0 then
+    insert into public.availability_windows (weekday, start_minute, end_minute)
+    select p_weekdays[i], p_starts[i], p_ends[i]
+    from generate_subscripts(p_weekdays, 1) as i;
+  end if;
+
+  return query
+    select * from public.availability_windows
+    order by weekday, start_minute;
+end;
+$$;
+
 create or replace function public.dashboard_list_meetings(
   p_password text,
   p_from timestamptz,
@@ -515,6 +430,7 @@ grant execute on function public.dashboard_assign_lead(text, uuid, text) to anon
 grant execute on function public.dashboard_delete_lead(text, uuid, text) to anon, authenticated;
 grant execute on function public.dashboard_list_availability(text) to anon, authenticated;
 grant execute on function public.dashboard_set_availability(text, jsonb) to anon, authenticated;
+grant execute on function public.dashboard_set_availability_slots(text, int[], int[], int[]) to anon, authenticated;
 grant execute on function public.dashboard_list_meetings(text, timestamptz, timestamptz) to anon, authenticated;
 grant execute on function public.dashboard_book_meeting(text, uuid, timestamptz, timestamptz, text) to anon, authenticated;
 grant execute on function public.dashboard_cancel_meeting(text, uuid) to anon, authenticated;

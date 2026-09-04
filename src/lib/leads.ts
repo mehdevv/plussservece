@@ -1,5 +1,7 @@
 import { getSupabase } from "./supabase";
-import type { Lead, LeadInput, LeadStatus } from "./types";
+import { resolveAccount } from "./auth";
+import type { BdrId, Lead, LeadInput, LeadStatus } from "./types";
+import { SetupRequiredError } from "./schedule";
 
 export function isEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -7,6 +9,10 @@ export function isEmail(value: string) {
 
 export function isPhone(value: string) {
   return value.replace(/\D/g, "").length >= 8;
+}
+
+function normalizeLead(row: Lead): Lead {
+  return { ...row, assigned_to: row.assigned_to ?? null };
 }
 
 export async function createLead(input: LeadInput) {
@@ -41,51 +47,120 @@ async function listLeadsFromTable() {
     .limit(5000);
 
   if (error) throw new Error(error.message);
-  return (data ?? []) as Lead[];
+  return ((data ?? []) as Lead[]).map(normalizeLead);
+}
+
+function missingFn(message: string) {
+  return /could not find the function|schema cache/i.test(message);
 }
 
 export async function listLeads(password: string) {
   const supabase = getSupabase();
   if (!supabase) throw new Error("Supabase is not configured.");
 
-  const { data, error } = await supabase.rpc("admin_list_leads", { p_password: password });
-  if (!error) return (data ?? []) as Lead[];
+  const dash = await supabase.rpc("dashboard_list_leads", { p_password: password });
+  if (!dash.error) return ((dash.data ?? []) as Lead[]).map(normalizeLead);
 
-  try {
-    return await listLeadsFromTable();
-  } catch {
-    throw new Error(error.message);
+  const account = resolveAccount(password);
+  if (account?.role === "admin") {
+    const legacy = await supabase.rpc("admin_list_leads", { p_password: password });
+    if (!legacy.error) return ((legacy.data ?? []) as Lead[]).map(normalizeLead);
+    try {
+      return await listLeadsFromTable();
+    } catch {
+      if (missingFn(dash.error.message)) throw new SetupRequiredError();
+      throw new Error(dash.error.message);
+    }
   }
+
+  if (missingFn(dash.error.message)) throw new SetupRequiredError();
+  throw new Error(dash.error.message);
 }
 
 export async function updateLeadStatus(password: string, id: string, status: LeadStatus) {
   const supabase = getSupabase();
   if (!supabase) throw new Error("Supabase is not configured.");
 
-  const rpc = await supabase.rpc("admin_update_lead", {
+  const dash = await supabase.rpc("dashboard_update_lead", {
     p_password: password,
     p_id: id,
     p_status: status,
     p_notes: null,
   });
-  if (!rpc.error) return;
+  if (!dash.error) return;
 
-  const { error } = await supabase.from("leads").update({ status }).eq("id", id);
-  if (error) throw new Error(rpc.error.message);
+  const account = resolveAccount(password);
+  if (account?.role === "admin") {
+    const rpc = await supabase.rpc("admin_update_lead", {
+      p_password: password,
+      p_id: id,
+      p_status: status,
+      p_notes: null,
+    });
+    if (!rpc.error) return;
+    const { error } = await supabase.from("leads").update({ status }).eq("id", id);
+    if (!error) return;
+  }
+
+  if (missingFn(dash.error.message)) throw new SetupRequiredError();
+  throw new Error(dash.error.message);
 }
 
 export async function updateLeadNotes(password: string, id: string, notes: string) {
   const supabase = getSupabase();
   if (!supabase) throw new Error("Supabase is not configured.");
 
-  const rpc = await supabase.rpc("admin_update_lead", {
+  const dash = await supabase.rpc("dashboard_update_lead", {
     p_password: password,
     p_id: id,
     p_status: null,
     p_notes: notes,
   });
-  if (!rpc.error) return;
+  if (!dash.error) return;
 
-  const { error } = await supabase.from("leads").update({ notes }).eq("id", id);
-  if (error) throw new Error(rpc.error.message);
+  const account = resolveAccount(password);
+  if (account?.role === "admin") {
+    const rpc = await supabase.rpc("admin_update_lead", {
+      p_password: password,
+      p_id: id,
+      p_status: null,
+      p_notes: notes,
+    });
+    if (!rpc.error) return;
+    const { error } = await supabase.from("leads").update({ notes }).eq("id", id);
+    if (!error) return;
+  }
+
+  if (missingFn(dash.error.message)) throw new SetupRequiredError();
+  throw new Error(dash.error.message);
+}
+
+export async function assignLead(password: string, id: string, assignedTo: BdrId | null) {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error("Supabase is not configured.");
+
+  const { error } = await supabase.rpc("dashboard_assign_lead", {
+    p_password: password,
+    p_id: id,
+    p_assigned_to: assignedTo ?? "",
+  });
+  if (error) {
+    if (/could not find the function|schema cache/i.test(error.message)) throw new SetupRequiredError();
+    throw new Error(error.message);
+  }
+}
+
+export async function deleteLead(password: string, id: string, confirm: string) {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error("Supabase is not configured.");
+
+  const { error } = await supabase.rpc("dashboard_delete_lead", {
+    p_password: password,
+    p_id: id,
+    p_confirm: confirm,
+  });
+  if (error) {
+    if (/could not find the function|schema cache/i.test(error.message)) throw new SetupRequiredError();
+    throw new Error(error.message);
+  }
 }

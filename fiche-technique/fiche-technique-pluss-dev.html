@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Pluss.dev — Fiche Technique</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --surface:#f3f4f6;
+    --text:#020817;
+    --muted:#374151;
+    --faint:#6b7280;
+    --border:#e5e7eb;
+    --accent:#2563eb;
+  }
+
+  @page { size: A4; margin: 0; }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html,body{
+    background:var(--bg);
+    color:var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page{
+    position:relative;
+    width:210mm;
+    height:296.9mm;
+    padding:16mm 16mm 14mm;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    page-break-after:always;
+    break-after:page;
+  }
+  .page:last-child{ page-break-after:auto; break-after:auto; }
+
+  /* ---------- shared type ---------- */
+  h1,h2,h3,h4{ font-weight:300; letter-spacing:-0.02em; line-height:1.06; }
+
+  .mark{
+    font-size:7.5pt;
+    font-weight:600;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--accent);
+  }
+  .rule{ height:1px; background:var(--border); }
+  .rule-accent{ height:2px; background:var(--accent); width:42px; }
+
+  p{ font-size:9pt; line-height:1.55; color:var(--muted); }
+  .lead{ font-size:10.5pt; line-height:1.5; color:var(--muted); }
+
+  /* ---------- page chrome ---------- */
+  .pg-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding-bottom:5mm; border-bottom:1px solid var(--border); margin-bottom:8mm;
+  }
+  .pg-head .brand{ display:flex; align-items:center; gap:7px; }
+  .pg-head img{ height:14px; width:auto; }
+  .pg-head .wm{ font-size:9pt; font-weight:500; letter-spacing:-0.02em; }
+  .pg-head .sec{ font-size:7.5pt; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); }
+
+  .pg-foot{
+    margin-top:auto; padding-top:5mm; border-top:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    font-size:7pt; letter-spacing:.1em; text-transform:uppercase; color:var(--faint);
+  }
+  .pg-foot .num{ color:var(--text); font-weight:600; }
+
+  /* ---------- cover ---------- */
+  .cover{ padding:0; }
+  .cover-band{
+    background:var(--surface);
+    padding:16mm 16mm 12mm;
+    border-bottom:2px solid var(--accent);
+  }
+  .cover-brand{ display:flex; align-items:center; gap:9px; margin-bottom:22mm; }
+  .cover-brand img{ height:22px; width:auto; }
+  .cover-brand .wm{ font-size:13pt; font-weight:500; letter-spacing:-0.03em; }
+  .cover-brand .div{ width:1px; height:16px; background:var(--border); }
+  .cover-brand .loc{ font-size:8pt; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+
+  .cover-title{ font-size:34pt; line-height:1.0; letter-spacing:-0.035em; margin:5mm 0 6mm; max-width:150mm; }
+  .cover-sub{ font-size:11pt; line-height:1.5; color:var(--muted); max-width:140mm; }
+
+  .cover-body{ padding:11mm 16mm 0; flex:1; display:flex; flex-direction:column; }
+
+  .kpis{ display:flex; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .kpi{ flex:1; padding:6mm 6mm 6mm 0; }
+  .kpi + .kpi{ padding-left:6mm; border-left:1px solid var(--border); }
+  .kpi .v{ font-size:19pt; font-weight:300; letter-spacing:-0.03em; color:var(--accent); }
+  .kpi .l{ font-size:7.5pt; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); margin-top:2mm; }
+
+  .index{ margin-top:9mm; }
+  .index-row{
+    display:flex; align-items:baseline; gap:7mm;
+    padding:3.6mm 0; border-bottom:1px solid var(--border);
+  }
+  .index-row:first-of-type{ border-top:1px solid var(--border); }
+  .index-row .n{ font-size:8pt; font-weight:600; color:var(--accent); width:9mm; letter-spacing:.06em; }
+  .index-row .t{ font-size:11pt; font-weight:400; letter-spacing:-0.02em; width:52mm; }
+  .index-row .d{ font-size:8.5pt; color:var(--muted); flex:1; }
+  .index-row .m{ font-size:7.5pt; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); white-space:nowrap; }
+
+  .cover-foot{
+    margin-top:auto; padding:0 0 14mm; display:flex; justify-content:space-between; align-items:flex-end;
+  }
+  .cover-foot .doc{ font-size:7.5pt; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); line-height:2; }
+  .cover-foot .site{ font-size:10pt; font-weight:500; letter-spacing:-0.02em; }
+
+  /* ---------- section titles ---------- */
+  .sec-title{ font-size:21pt; letter-spacing:-0.03em; margin:3mm 0 3mm; }
+  .sec-lead{ font-size:9.5pt; line-height:1.55; color:var(--muted); max-width:150mm; margin-bottom:7mm; }
+
+  /* ---------- service block ---------- */
+  .svc{ border-top:1px solid var(--border); padding:6mm 0 0; margin-bottom:6mm; }
+  .svc-top{ display:flex; align-items:baseline; gap:5mm; margin-bottom:3.5mm; }
+  .svc-num{ font-size:8pt; font-weight:600; color:var(--accent); letter-spacing:.08em; }
+  .svc-name{ font-size:15pt; font-weight:400; letter-spacing:-0.03em; }
+  .svc-tag{
+    font-size:6.8pt; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    background:var(--text); color:#fff; padding:2px 7px; margin-left:auto;
+  }
+  .svc-promise{ font-size:9.5pt; line-height:1.5; color:var(--text); margin-bottom:3mm; max-width:160mm; }
+  .svc-grid{ display:flex; gap:6mm; }
+  .svc-points{ flex:1.55; }
+  .svc-points li{
+    list-style:none; font-size:8.5pt; line-height:1.45; color:var(--muted);
+    padding-left:5mm; margin-bottom:2mm; position:relative;
+  }
+  .svc-points li::before{
+    content:""; position:absolute; left:0; top:4.2px;
+    width:5px; height:5px; background:var(--accent);
+  }
+  .svc-meta{ flex:1; background:var(--surface); padding:4mm; }
+  .svc-meta .row{ display:flex; justify-content:space-between; gap:3mm; padding:1.6mm 0; }
+  .svc-meta .row + .row{ border-top:1px solid #e0e2e6; }
+  .svc-meta .k{ font-size:7pt; letter-spacing:.11em; text-transform:uppercase; color:var(--faint); }
+  .svc-meta .v{ font-size:8.5pt; font-weight:500; color:var(--text); text-align:right; }
+
+  /* ---------- checklist ---------- */
+  .checks{ display:grid; grid-template-columns:1fr 1fr; gap:0 8mm; }
+  .check{ display:flex; gap:3.5mm; padding:3.6mm 0; border-bottom:1px solid var(--border); }
+  .check .ic{
+    flex:none; width:15px; height:15px; background:var(--accent); color:#fff;
+    font-size:8pt; line-height:15px; text-align:center; font-weight:600;
+  }
+  .check .tx .t{ font-size:9pt; font-weight:500; letter-spacing:-0.01em; margin-bottom:1mm; }
+  .check .tx .d{ font-size:8pt; line-height:1.45; color:var(--muted); }
+
+  /* ---------- generic table ---------- */
+  table{ width:100%; border-collapse:collapse; }
+  th{
+    text-align:left; font-size:7pt; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--faint); padding:0 4mm 2.5mm 0; border-bottom:1px solid var(--text);
+  }
+  th:last-child, td:last-child{ padding-right:0; }
+  td{ font-size:8.5pt; line-height:1.45; color:var(--muted); padding:3mm 4mm 3mm 0; border-bottom:1px solid var(--border); vertical-align:top; }
+  td.key{ color:var(--text); font-weight:500; width:44mm; }
+  td.accent{ color:var(--accent); font-weight:600; white-space:nowrap; }
+
+  /* ---------- stack ---------- */
+  .stack{ display:grid; grid-template-columns:1fr 1fr; gap:5mm; }
+  .stack-card{ border:1px solid var(--border); padding:4.5mm; }
+  .stack-card .h{ font-size:7pt; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:3mm; }
+  .chips{ display:flex; flex-wrap:wrap; gap:2mm; }
+  .chip{ font-size:7.8pt; color:var(--text); background:var(--surface); padding:1.6mm 2.6mm; }
+
+  /* ---------- process ---------- */
+  .steps{ display:flex; gap:6mm; }
+  .step{ flex:1; border-top:2px solid var(--accent); padding-top:3.5mm; }
+  .step .n{ font-size:7pt; font-weight:600; letter-spacing:.14em; color:var(--faint); margin-bottom:2mm; }
+  .step .t{ font-size:11pt; font-weight:400; letter-spacing:-0.02em; margin-bottom:2mm; }
+  .step .d{ font-size:8pt; line-height:1.45; color:var(--muted); }
+
+  /* ---------- refs ---------- */
+  .refs{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:5mm; }
+  .ref{ background:var(--surface); padding:4.5mm; display:flex; flex-direction:column; }
+  .ref .k{ font-size:6.8pt; font-weight:600; letter-spacing:.14em; color:var(--accent); margin-bottom:2.5mm; }
+  .ref .n{ font-size:11pt; font-weight:400; letter-spacing:-0.02em; margin-bottom:2mm; }
+  .ref .d{ font-size:8pt; line-height:1.45; color:var(--muted); }
+  .ref .techs{ display:flex; flex-wrap:wrap; gap:1.4mm; margin-top:3mm; }
+  .ref .techs span{ font-size:6.6pt; background:#fff; color:var(--muted); padding:1mm 1.8mm; }
+  .ref .lnk{
+    margin-top:auto; padding-top:3mm; font-size:7.4pt; font-weight:600;
+    color:var(--accent); text-decoration:none; word-break:break-all;
+  }
+
+  /* ---------- contact ---------- */
+  .contact{ display:grid; grid-template-columns:1fr 1fr; gap:0 8mm; }
+  .contact .c{ padding:4mm 0; border-bottom:1px solid var(--border); }
+  .contact .c:nth-child(1), .contact .c:nth-child(2){ border-top:1px solid var(--border); }
+  .contact .k{ font-size:6.8pt; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin-bottom:2mm; }
+  .contact .v{ font-size:10pt; font-weight:500; letter-spacing:-0.01em; color:var(--text); text-decoration:none; }
+  .contact .v.acc{ color:var(--accent); }
+  .contact .sub{ font-size:7.5pt; color:var(--faint); margin-top:1.5mm; }
+
+  /* ---------- cta ---------- */
+  .cta{ border:1px solid var(--accent); padding:6mm; }
+  .cta .t{ font-size:13pt; font-weight:400; letter-spacing:-0.025em; margin-bottom:2.5mm; }
+  .cta .d{ font-size:8.5pt; line-height:1.5; color:var(--muted); }
+
+  .note{
+    border-left:2px solid var(--accent); background:var(--surface);
+    padding:4mm 5mm; font-size:8.5pt; line-height:1.5; color:var(--muted);
+  }
+  .note strong{ color:var(--text); font-weight:600; }
+
+  .h-sm{ font-size:12pt; font-weight:400; letter-spacing:-0.02em; margin-bottom:3.5mm; }
+  .sp-6{ height:6mm; } .sp-8{ height:8mm; } .sp-10{ height:10mm; }
+
+  /* ---------- faq ---------- */
+  .faq{ display:grid; grid-template-columns:1fr 1fr; gap:6mm 8mm; }
+  .faq-item .q{ font-size:9pt; font-weight:500; letter-spacing:-0.01em; padding-bottom:2mm; border-bottom:1px solid var(--accent); margin-bottom:2.5mm; }
+  .faq-item .a{ font-size:8.2pt; line-height:1.5; color:var(--muted); }
+
+  /* ---------- closing sign-off ---------- */
+  .closing{
+    margin-top:auto;
+    background:var(--surface);
+    border-top:2px solid var(--accent);
+    padding:9mm 10mm;
+    text-align:center;
+  }
+  .closing .brandline{ display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:4mm; }
+  .closing .brandline img{ height:18px; width:auto; }
+  .closing .brandline .wm{ font-size:12pt; font-weight:500; letter-spacing:-0.03em; }
+  .closing .blurb{ font-size:9pt; line-height:1.55; color:var(--muted); max-width:120mm; margin:0 auto 6mm; }
+  .closing .line{
+    font-size:7.5pt; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--accent);
+    padding-top:4mm; border-top:1px solid #dfe2e7;
+  }
+  .closing + .pg-foot{ margin-top:8mm; }
+
+  /* page children must keep their intrinsic size inside the flex column */
+  .page > *{ flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE 1 — COVER ============ -->
+<section class="page cover">
+  <div class="cover-band">
+    <div class="cover-brand">
+      <img src="logo.png" alt="" />
+      <span class="wm">Pluss.dev</span>
+      <span class="div"></span>
+      <span class="loc">Agence de développement · Algérie</span>
+    </div>
+    <div class="mark">Fiche technique</div>
+    <h1 class="cover-title">Sites vitrines, e-commerce, CRM, ERP et systèmes d’IA.</h1>
+    <p class="cover-sub">
+      Document de référence décrivant le périmètre des services, le socle technique livré
+      avec chaque projet, la stack utilisée, le déroulé d’un projet et les modalités de tarification.
+    </p>
+  </div>
+
+  <div class="cover-body">
+    <div class="kpis">
+      <div class="kpi"><div class="v">05</div><div class="l">Lignes de service</div></div>
+      <div class="kpi"><div class="v">3 jours</div><div class="l">Livraison site vitrine</div></div>
+      <div class="kpi"><div class="v">100 %</div><div class="l">Hébergement légal en Algérie</div></div>
+      <div class="kpi"><div class="v">FR · AR · EN</div><div class="l">Langues supportées</div></div>
+    </div>
+
+    <div class="index">
+      <div class="index-row">
+        <span class="n">01</span><span class="t">Site vitrine</span>
+        <span class="d">Présence en ligne professionnelle, prête à lancer</span>
+        <span class="m">Prix fixe</span>
+      </div>
+      <div class="index-row">
+        <span class="n">02</span><span class="t">Site e-commerce</span>
+        <span class="d">Catalogue, commandes, paiement et livraison par wilaya</span>
+        <span class="m">Sur devis</span>
+      </div>
+      <div class="index-row">
+        <span class="n">03</span><span class="t">CRM</span>
+        <span class="d">Clients, pipeline de vente et relances dans un seul système</span>
+        <span class="m">Sur devis</span>
+      </div>
+      <div class="index-row">
+        <span class="n">04</span><span class="t">ERP</span>
+        <span class="d">Stock, facturation, équipe et reporting opérationnel</span>
+        <span class="m">Sur devis</span>
+      </div>
+      <div class="index-row">
+        <span class="n">05</span><span class="t">Systèmes d’IA</span>
+        <span class="d">Assistants, automatisation et traitement documentaire</span>
+        <span class="m">Sur devis</span>
+      </div>
+    </div>
+
+    <div class="sp-8"></div>
+    <div class="note">
+      <strong>Principe directeur.</strong> Chaque système est construit autour de l’activité du client —
+      son offre, son process de vente et sa langue de travail — et non à partir d’un modèle générique
+      revendu à l’identique. Les services se prennent séparément ou se combinent.
+    </div>
+
+    <div class="cover-foot">
+      <div class="doc">
+        Document technique · Version 1.0<br />
+        Septembre 2026 · Valable pour l’exercice en cours
+      </div>
+      <div class="site">pluss.dev</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PAGE 2 — SERVICES 01–02 ============ -->
+<section class="page">
+  <div class="pg-head">
+    <div class="brand"><img src="logo.png" alt="" /><span class="wm">Pluss.dev</span></div>
+    <div class="sec">Périmètre des services</div>
+  </div>
+
+  <div class="mark">Section 01</div>
+  <h2 class="sec-title">Web — vitrine et e-commerce</h2>
+  <p class="sec-lead">
+    Deux niveaux de présence en ligne. Le site vitrine couvre le besoin de crédibilité et de
+    captation de contacts ; l’e-commerce ajoute la vente en ligne complète, adaptée aux modes
+    de paiement et de livraison pratiqués en Algérie.
+  </p>
+
+  <div class="svc">
+    <div class="svc-top">
+      <span class="svc-num">01</span>
+      <span class="svc-name">Site vitrine</span>
+      <span class="svc-tag">3 jours</span>
+    </div>
+    <p class="svc-promise">
+      Un site professionnel en ligne en 3 jours — pour être trouvé, être pris au sérieux et
+      convertir les visiteurs en demandes de contact.
+    </p>
+    <div class="svc-grid">
+      <ul class="svc-points">
+        <li>Domaine .dz, hébergement en Algérie, certificat SSL et e-mail professionnel inclus</li>
+        <li>Pages responsive éditables par le client, sans intervention d’un développeur</li>
+        <li>Structure bâtie sur les services réels de l’entreprise, pas sur un gabarit générique</li>
+        <li>Formulaire de contact relié à une boîte de réception centralisée des demandes</li>
+        <li>Référencement de base : balises, métadonnées, plan de site et vitesse de chargement</li>
+      </ul>
+      <div class="svc-meta">
+        <div class="row"><span class="k">Tarif</span><span class="v">32 000 DA</span></div>
+        <div class="row"><span class="k">Délai</span><span class="v">3 jours</span></div>
+        <div class="row"><span class="k">Paiement</span><span class="v">Une seule fois</span></div>
+        <div class="row"><span class="k">Pages</span><span class="v">Vitrine multi-sections</span></div>
+        <div class="row"><span class="k">Édition</span><span class="v">Autonome</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="svc">
+    <div class="svc-top">
+      <span class="svc-num">02</span>
+      <span class="svc-name">Site e-commerce</span>
+      <span class="svc-tag">Vente en ligne</span>
+    </div>
+    <p class="svc-promise">
+      Une boutique en ligne qui prend les commandes, suit le stock et s’aligne sur la réalité
+      logistique locale : paiement à la livraison, wilayas et transporteurs.
+    </p>
+    <div class="svc-grid">
+      <ul class="svc-points">
+        <li>Catalogue produits avec variantes, catégories, photos et gestion des prix</li>
+        <li>Panier, tunnel de commande court et confirmation client automatique</li>
+        <li>Paiement à la livraison, virement, et intégration des solutions de paiement locales</li>
+        <li>Frais et zones de livraison paramétrables par wilaya, suivi des expéditions</li>
+        <li>Tableau de bord commandes, stock, clients et chiffre d’affaires</li>
+        <li>Interface bilingue français / arabe avec support de l’affichage de droite à gauche</li>
+      </ul>
+      <div class="svc-meta">
+        <div class="row"><span class="k">Tarif</span><span class="v">Sur devis</span></div>
+        <div class="row"><span class="k">Cadrage</span><span class="v">Appel gratuit</span></div>
+        <div class="row"><span class="k">Délai</span><span class="v">Selon catalogue</span></div>
+        <div class="row"><span class="k">Back-office</span><span class="v">Inclus</span></div>
+        <div class="row"><span class="k">Extension</span><span class="v">CRM / ERP</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Combinaison.</strong> Un site vitrine ou e-commerce peut être connecté à un CRM pour
+    le suivi commercial, ou à un ERP pour la synchronisation du stock et de la facturation.
+    L’arbitrage entre première version et évolutions ultérieures se fait lors du cadrage.
+  </div>
+
+  <div class="pg-foot">
+    <span>Pluss.dev · Fiche technique</span>
+    <span class="num">02</span>
+  </div>
+</section>
+
+<!-- ============ PAGE 3 — SERVICES 03–05 ============ -->
+<section class="page">
+  <div class="pg-head">
+    <div class="brand"><img src="logo.png" alt="" /><span class="wm">Pluss.dev</span></div>
+    <div class="sec">Périmètre des services</div>
+  </div>
+
+  <div class="mark">Section 02</div>
+  <h2 class="sec-title">Systèmes métier — CRM, ERP et IA</h2>
+  <p class="sec-lead">
+    Trois systèmes conçus sur mesure. Ils remplacent les carnets, les fichiers dispersés et les
+    conversations perdues par une structure unique, dimensionnée à la taille réelle de l’entreprise.
+  </p>
+
+  <div class="svc">
+    <div class="svc-top">
+      <span class="svc-num">03</span>
+      <span class="svc-name">CRM</span>
+      <span class="svc-tag">Clients</span>
+    </div>
+    <p class="svc-promise">
+      Un seul système pour les clients, les relances et les ventes — à la place des chats
+      dispersés et des carnets séparés.
+    </p>
+    <div class="svc-grid">
+      <ul class="svc-points">
+        <li>Contacts, opportunités, notes et rappels centralisés au même endroit</li>
+        <li>Pipeline calqué sur les étapes de vente déjà pratiquées par l’équipe</li>
+        <li>Relances alignées sur les canaux réels : appel, messagerie, visite terrain</li>
+        <li>Modules activés à la carte selon le secteur — commerce, clinique, agence, force de vente</li>
+      </ul>
+      <div class="svc-meta">
+        <div class="row"><span class="k">Tarif</span><span class="v">Sur devis</span></div>
+        <div class="row"><span class="k">Cadrage</span><span class="v">Sur votre process</span></div>
+        <div class="row"><span class="k">Accès</span><span class="v">Multi-utilisateurs</span></div>
+        <div class="row"><span class="k">Données</span><span class="v">Import possible</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="svc">
+    <div class="svc-top">
+      <span class="svc-num">04</span>
+      <span class="svc-name">ERP</span>
+      <span class="svc-tag">Opérations</span>
+    </div>
+    <p class="svc-promise">
+      Les opérations dans un seul système : stock, factures, équipe et reporting — dimensionné
+      à l’entreprise, pas un outil de grand groupe.
+    </p>
+    <div class="svc-grid">
+      <ul class="svc-points">
+        <li>Stock, facturation et dossiers internes reliés entre eux, sans double saisie</li>
+        <li>Rôles et permissions pour le dirigeant et l’équipe, sans complexité inutile</li>
+        <li>Rapports orientés décision plutôt que tableaux de bord que personne n’ouvre</li>
+        <li>Gestion multi-sites et multi-dépôts selon l’organisation réelle</li>
+      </ul>
+      <div class="svc-meta">
+        <div class="row"><span class="k">Tarif</span><span class="v">Sur devis</span></div>
+        <div class="row"><span class="k">Cadrage</span><span class="v">Sur vos opérations</span></div>
+        <div class="row"><span class="k">Rôles</span><span class="v">Personnalisés</span></div>
+        <div class="row"><span class="k">Documents</span><span class="v">Factures / bons</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="svc">
+    <div class="svc-top">
+      <span class="svc-num">05</span>
+      <span class="svc-name">Systèmes d’IA</span>
+      <span class="svc-tag">Automatisation</span>
+    </div>
+    <p class="svc-promise">
+      Une IA qui travaille sur l’activité réelle : les produits de l’entreprise, sa langue et
+      ses tâches répétitives.
+    </p>
+    <div class="svc-grid">
+      <ul class="svc-points">
+        <li>Assistants pour le support client, l’avant-vente ou les questions internes</li>
+        <li>Automatisation des relances, de la génération de documents et des routines</li>
+        <li>Exploitation des documents et FAQ de l’entreprise comme base de connaissance</li>
+        <li>Français, arabe ou anglais — calé sur le ton réellement employé par l’entreprise</li>
+      </ul>
+      <div class="svc-meta">
+        <div class="row"><span class="k">Tarif</span><span class="v">Sur devis</span></div>
+        <div class="row"><span class="k">Cadrage</span><span class="v">Sur vos données</span></div>
+        <div class="row"><span class="k">Langues</span><span class="v">FR · AR · EN</span></div>
+        <div class="row"><span class="k">Intégration</span><span class="v">CRM / ERP / Web</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pg-foot">
+    <span>Pluss.dev · Fiche technique</span>
+    <span class="num">03</span>
+  </div>
+</section>
+
+<!-- ============ PAGE 4 — SOCLE + STACK ============ -->
+<section class="page">
+  <div class="pg-head">
+    <div class="brand"><img src="logo.png" alt="" /><span class="wm">Pluss.dev</span></div>
+    <div class="sec">Socle technique</div>
+  </div>
+
+  <div class="mark">Section 03</div>
+  <h2 class="sec-title">Inclus dans chaque site livré</h2>
+  <p class="sec-lead">
+    Six éléments systématiquement fournis et configurés, sans supplément ni démarche
+    à la charge du client.
+  </p>
+
+  <div class="checks">
+    <div class="check">
+      <span class="ic">✓</span>
+      <span class="tx">
+        <span class="t">Domaine .dz au nom du client</span>
+        <span class="d">Nom de domaine national enregistré et configuré, propriété de l’entreprise.</span>
+      </span>
+    </div>
+    <div class="check">
+      <span class="ic">✓</span>
+      <span class="tx">
+        <span class="t">Hébergement professionnel en Algérie</span>
+        <span class="d">Infrastructure locale, rapide et 100 % conforme à la réglementation.</span>
+      </span>
+    </div>
+    <div class="check">
+      <span class="ic">✓</span>
+      <span class="tx">
+        <span class="t">Certificat SSL gratuit</span>
+        <span class="d">Connexion chiffrée en HTTPS et cadenas de confiance dès le premier jour.</span>
+      </span>
+    </div>
+    <div class="check">
+      <span class="ic">✓</span>
+      <span class="tx">
+        <span class="t">E-mail professionnel</span>
+        <span class="d">Adresses en @votredomaine.dz à la place d’une messagerie grand public.</span>
+      </span>
+    </div>
+    <div class="check">
+      <span class="ic">✓</span>
+      <span class="tx">
+        <span class="t">Design responsive</span>
+        <span class="d">Affichage et navigation optimisés sur mobile, tablette et ordinateur.</span>
+      </span>
+    </div>
+    <div class="check">
+      <span class="ic">✓</span>
+      <span class="tx">
+        <span class="t">Édition autonome du contenu</span>
+        <span class="d">Textes et images modifiables par le client, sans développeur à chaque fois.</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="sp-10"></div>
+
+  <div class="mark">Section 04</div>
+  <h2 class="sec-title">Stack technique</h2>
+  <p class="sec-lead">
+    Technologies employées sur les projets. Le choix exact est arrêté au cadrage selon la
+    charge attendue, le budget et les contraintes d’exploitation.
+  </p>
+
+  <div class="stack">
+    <div class="stack-card">
+      <div class="h">Interface</div>
+      <div class="chips">
+        <span class="chip">React</span><span class="chip">TypeScript</span><span class="chip">Vite</span>
+        <span class="chip">React Native</span><span class="chip">CSS moderne</span><span class="chip">RTL / bilingue</span>
+      </div>
+    </div>
+    <div class="stack-card">
+      <div class="h">Backend & données</div>
+      <div class="chips">
+        <span class="chip">Node.js</span><span class="chip">Supabase</span><span class="chip">PostgreSQL</span>
+        <span class="chip">Authentification</span><span class="chip">Row Level Security</span><span class="chip">API REST</span>
+      </div>
+    </div>
+    <div class="stack-card">
+      <div class="h">IA & automatisation</div>
+      <div class="chips">
+        <span class="chip">Modèles de langage</span><span class="chip">Recherche documentaire</span>
+        <span class="chip">n8n</span><span class="chip">Webhooks</span><span class="chip">Tâches planifiées</span>
+      </div>
+    </div>
+    <div class="stack-card">
+      <div class="h">Infrastructure & suivi</div>
+      <div class="chips">
+        <span class="chip">Hébergement Algérie</span><span class="chip">Domaine .dz</span><span class="chip">SSL / HTTPS</span>
+        <span class="chip">Sauvegardes</span><span class="chip">Analytics</span><span class="chip">Suivi des conversions</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pg-foot">
+    <span>Pluss.dev · Fiche technique</span>
+    <span class="num">04</span>
+  </div>
+</section>
+
+<!-- ============ PAGE 5 — PROCESS, TARIFS, RÉFÉRENCES ============ -->
+<section class="page">
+  <div class="pg-head">
+    <div class="brand"><img src="logo.png" alt="" /><span class="wm">Pluss.dev</span></div>
+    <div class="sec">Socle technique & conditions</div>
+  </div>
+
+  <div class="mark">Section 04 — suite</div>
+  <h2 class="sec-title">Caractéristiques transverses</h2>
+  <div class="sp-6"></div>
+  <table>
+    <tr>
+      <td class="key">Langues</td>
+      <td>Français, arabe et anglais. Affichage de droite à gauche pris en charge nativement.</td>
+    </tr>
+    <tr>
+      <td class="key">Compatibilité</td>
+      <td>Navigateurs récents sur mobile, tablette et ordinateur. Cibles tactiles adaptées au mobile.</td>
+    </tr>
+    <tr>
+      <td class="key">Sécurité</td>
+      <td>HTTPS systématique, authentification des accès, cloisonnement des données par utilisateur.</td>
+    </tr>
+    <tr>
+      <td class="key">Performance</td>
+      <td>Chargement optimisé, images compressées, ressources servies en cache.</td>
+    </tr>
+    <tr>
+      <td class="key">Administration</td>
+      <td>Interface d’administration pour le contenu, les demandes entrantes et les données métier.</td>
+    </tr>
+  </table>
+
+  <div class="sp-10"></div>
+
+  <div class="mark">Section 05</div>
+  <h2 class="sec-title">Déroulé d’un projet</h2>
+  <p class="sec-lead">
+    Le même chemin pour chaque service : l’activité du client d’abord, la technique ensuite.
+  </p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="n">Étape 01</div>
+      <div class="t">Appel de cadrage</div>
+      <div class="d">
+        Analyse de l’activité : comment l’entreprise vend, où se situent les blocages,
+        ce qu’elle veut faire croître. Gratuit et sans engagement.
+      </div>
+    </div>
+    <div class="step">
+      <div class="n">Étape 02</div>
+      <div class="t">Construction</div>
+      <div class="d">
+        Site vitrine, e-commerce, CRM, ERP, IA — ou une combinaison. Le système est conçu
+        autour du process existant, pas d’un modèle générique.
+      </div>
+    </div>
+    <div class="step">
+      <div class="n">Étape 03</div>
+      <div class="t">Lancement</div>
+      <div class="d">
+        Mise en ligne, remise des accès et prise en main. Le client repart avec un système
+        à sa taille, dans sa langue, aligné sur sa façon de travailler.
+      </div>
+    </div>
+  </div>
+
+  <div class="sp-10"></div>
+
+  <div class="mark">Section 06</div>
+  <h2 class="sec-title">Tarification</h2>
+  <p class="sec-lead">
+    Le site vitrine est à prix fixe. Les autres services sont calibrés selon la taille de
+    l’entreprise et la complexité du process. Aucun paiement n’est requis pour l’appel de cadrage.
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>Service</th><th>Modèle</th><th>Délai indicatif</th><th>Tarif</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="key">Site vitrine</td><td>Forfait, paiement unique</td><td>3 jours</td><td class="accent">32 000 DA</td>
+      </tr>
+      <tr>
+        <td class="key">Site e-commerce</td><td>Devis selon catalogue et logistique</td><td>Défini au cadrage</td><td class="accent">Sur devis</td>
+      </tr>
+      <tr>
+        <td class="key">CRM</td><td>Devis selon pipeline et utilisateurs</td><td>Défini au cadrage</td><td class="accent">Sur devis</td>
+      </tr>
+      <tr>
+        <td class="key">ERP</td><td>Devis selon modules et volumétrie</td><td>Défini au cadrage</td><td class="accent">Sur devis</td>
+      </tr>
+      <tr>
+        <td class="key">Systèmes d’IA</td><td>Devis selon données et périmètre</td><td>Défini au cadrage</td><td class="accent">Sur devis</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="pg-foot">
+    <span>Pluss.dev · Fiche technique</span>
+    <span class="num">05</span>
+  </div>
+</section>
+
+<!-- ============ PAGE 6 — RÉFÉRENCES, FAQ, PORTÉE ============ -->
+<section class="page">
+  <div class="pg-head">
+    <div class="brand"><img src="logo.png" alt="" /><span class="wm">Pluss.dev</span></div>
+    <div class="sec">Références & questions</div>
+  </div>
+
+  <div class="mark">Section 07</div>
+  <h2 class="sec-title">Références</h2>
+  <p class="sec-lead">
+    Exemples de systèmes livrés, chacun construit autour du fonctionnement réel du client.
+  </p>
+
+  <div class="refs">
+    <div class="ref">
+      <div class="k">Site corporate</div>
+      <div class="n">Petro West</div>
+      <div class="d">
+        Présence web corporate pour une marque de lubrifiants et huiles moteur en Algérie —
+        catalogue produits et storytelling de marque.
+      </div>
+      <div class="techs"><span>React</span><span>Tailwind CSS</span></div>
+      <a class="lnk" href="https://petrowest.vercel.app/">petrowest.vercel.app</a>
+    </div>
+    <div class="ref">
+      <div class="k">Plateforme SaaS + IA</div>
+      <div class="n">Researcha</div>
+      <div class="d">
+        Plateforme B2B d’intelligence de marché : rapports sectoriels, abonnements, paiements,
+        lecture PDF sécurisée et assistant IA connecté aux documents.
+      </div>
+      <div class="techs"><span>React</span><span>Supabase</span><span>FastAPI</span><span>IA / RAG</span></div>
+      <a class="lnk" href="https://platform-intelligente.vercel.app/">platform-intelligente.vercel.app</a>
+    </div>
+    <div class="ref">
+      <div class="k">Produit &amp; fidélisation</div>
+      <div class="n">Carta</div>
+      <div class="d">
+        Cartes de fidélité digitales pour cafés, commerces et entreprises algériennes —
+        suivi des clients et des récompenses.
+      </div>
+      <div class="techs"><span>React</span><span>Supabase</span><span>Web app</span></div>
+      <a class="lnk" href="https://mycarta.online">mycarta.online</a>
+    </div>
+  </div>
+
+  <div class="sp-10"></div>
+
+  <div class="mark">Section 08</div>
+  <h2 class="sec-title">Questions fréquentes</h2>
+  <div class="sp-6"></div>
+
+  <div class="faq">
+    <div class="faq-item">
+      <div class="q">Faut-il choisir un seul service ?</div>
+      <div class="a">
+        Non. Beaucoup de projets démarrent par le site vitrine, puis ajoutent le CRM, l’ERP
+        ou l’IA. Ce qui relève de la première version et ce qui vient ensuite est arbitré
+        pendant l’appel de cadrage.
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="q">Tout est-il réellement personnalisé ?</div>
+      <div class="a">
+        Oui. Pages, pipeline, modules et modèles d’IA sont construits à partir de l’offre,
+        du process et de la langue de l’entreprise — il ne s’agit pas d’un produit
+        revendu à l’identique.
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="q">Le site vitrine est-il vraiment livré en 3 jours ?</div>
+      <div class="a">
+        Oui, une fois l’appel de cadrage effectué et les éléments réunis (logo, contenus,
+        préférences). Le délai court à partir de la réception de ces éléments.
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="q">L’hébergement est-il légal et basé en Algérie ?</div>
+      <div class="a">
+        Oui. L’hébergement est assuré sur une infrastructure située en Algérie, dans un
+        cadre 100 % légal et conforme, avec un domaine .dz au nom de l’entreprise.
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="q">Le système peut-il évoluer après la livraison ?</div>
+      <div class="a">
+        Oui. Les systèmes sont conçus pour accueillir de nouveaux modules — passage du site
+        vitrine à l’e-commerce, ajout d’un CRM, extension de l’ERP — sans repartir de zéro.
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="q">Comment se passe le paiement ?</div>
+      <div class="a">
+        Les modalités sont confirmées lors de l’appel de cadrage, une fois le périmètre arrêté.
+        Aucun paiement n’est requis pour échanger ou obtenir un devis.
+      </div>
+    </div>
+  </div>
+
+  <div class="pg-foot">
+    <span>Pluss.dev · Fiche technique</span>
+    <span class="num">06</span>
+  </div>
+</section>
+
+<!-- ============ PAGE 7 — CONTACT ============ -->
+<section class="page">
+  <div class="pg-head">
+    <div class="brand"><img src="logo.png" alt="" /><span class="wm">Pluss.dev</span></div>
+    <div class="sec">Contact</div>
+  </div>
+
+  <div class="mark">Section 09</div>
+  <h2 class="sec-title">Contact</h2>
+  <p class="sec-lead">
+    Pour un cadrage de projet, une demande de devis ou une question technique.
+  </p>
+
+  <div class="contact">
+    <div class="c">
+      <div class="k">E-mail</div>
+      <a class="v acc" href="mailto:pluss.development@gmail.com">pluss.development@gmail.com</a>
+      <div class="sub">Devis, cahiers des charges et documents</div>
+    </div>
+    <div class="c">
+      <div class="k">Site web</div>
+      <a class="v acc" href="https://pluss.dev">pluss.dev</a>
+      <div class="sub">Portfolio et présentation des services</div>
+    </div>
+    <div class="c">
+      <div class="k">Téléphone — Algérie</div>
+      <a class="v" href="tel:+213542452129">+213 542 452 129</a>
+      <div class="sub">Appel et messagerie</div>
+    </div>
+    <div class="c">
+      <div class="k">Téléphone — France</div>
+      <a class="v" href="tel:+33746375391">+33 7 46 37 53 91</a>
+      <div class="sub">Appel et messagerie</div>
+    </div>
+    <div class="c">
+      <div class="k">Instagram</div>
+      <a class="v acc" href="https://instagram.com/pluss.dev">@pluss.dev</a>
+      <div class="sub">instagram.com/pluss.dev</div>
+    </div>
+    <div class="c">
+      <div class="k">LinkedIn</div>
+      <a class="v acc" href="https://www.linkedin.com/in/kernoumehdi/">linkedin.com/in/kernoumehdi</a>
+      <div class="sub">Profil professionnel</div>
+    </div>
+  </div>
+
+  <div class="sp-10"></div>
+
+  <div class="cta">
+    <div class="t">Prochaine étape : l’appel de cadrage</div>
+    <div class="d">
+      Un échange gratuit et sans engagement pour analyser l’activité, déterminer lequel des
+      cinq services correspond au besoin, et définir ce qui entre dans une première version.
+      Aucun paiement n’est demandé pour cet échange.
+    </div>
+  </div>
+
+  <div class="sp-8"></div>
+
+  <div class="note">
+    <strong>Portée du document.</strong> Cette fiche technique décrit une offre de services et ses
+    caractéristiques générales. Elle ne constitue pas un devis. Le périmètre exact, le calendrier
+    et le montant d’un projet sont arrêtés à l’issue de l’appel de cadrage.
+  </div>
+
+  <div class="closing">
+    <div class="brandline">
+      <img src="logo.png" alt="" />
+      <span class="wm">Pluss.dev</span>
+    </div>
+    <p class="blurb">
+      Applications web, e-commerce, CRM, ERP et systèmes d’IA — conçus sur mesure pour
+      les entreprises en Algérie et au-delà.
+    </p>
+    <div class="line">Site vitrine · E-commerce · CRM · ERP · Systèmes d’IA</div>
+  </div>
+
+  <div class="pg-foot">
+    <span>Pluss.dev · Fiche technique · Version 1.0 — Septembre 2026</span>
+    <span class="num">07</span>
+  </div>
+</section>
+
+</body>
+</html>
